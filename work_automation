@@ -2,10 +2,13 @@ import pandas as pd
 import numpy as np
 import re
 
-
 # Excel files to load in
-tv_calls_file = pd.read_csv(r"C:\Users\aharriott\Downloads\production_results_1943001_Report_2021-12-07_call_details_20211213-1-18pnfzr_original.csv")
-summary_by_media_calls = pd.read_csv(r"C:\Users\aharriott\Downloads\2021-12-16_summary_by_multi_level (2).csv")
+# Summary by Media Raw Calls
+summary_by_media_calls = pd.read_csv(r"C:\Users\aharriott\Downloads\2021-12-21_summary_by_multi_level.csv")
+# Summary By Media Sales
+summary_by_media_sales = pd.read_csv(r'C:\Users\aharriott\Downloads\2021-12-20_call_details (1).csv')
+# Salesforce Sales
+salesforce_file = pd.read_csv(r'C:\Users\aharriott\Downloads\report1640098141866.csv')
 
 # TV Call total
 def tv_calls(file):
@@ -88,4 +91,36 @@ def sum_raw_calls():
     total = sum_by_media(summary_by_media_calls,print_substr) + sum_by_media(summary_by_media_calls,print_insert_substr) + total_mailer + sum_by_media(summary_by_media_calls,mailer_bfyt_mch_substr) + sum_by_media(summary_by_media_calls, doty_incremental) + sum_by_media(summary_by_media_calls,doty_mspark) + web_total + sum_by_media(summary_by_media_calls, mch_fb_goog_bing) + sum_by_media(summary_by_media_calls, bringans) + sum_by_media(summary_by_media_calls, lls) + sum_by_media(summary_by_media_calls, bayfront) + sum_by_media(summary_by_media_calls, malbis)
 
     return print(f'Total Count: {total}')
-print(sum_raw_calls())
+
+# Summary by Media Sales
+def sum_sales():
+    clean_numbers = []
+    for items in summary_by_media_sales['Caller ID']:
+        items = items.replace('-', '')
+        items = items.replace('Restricted', '0')
+        clean_numbers.append(items)
+
+    summary_by_media_sales['Clean Numbers'] = clean_numbers
+    summary_by_media_sales['Clean Numbers'] = summary_by_media_sales['Clean Numbers'].astype(np.int64)
+    new_df = summary_by_media_sales[['Clean Numbers', 'Call Start Time', 'Original Publisher']]
+
+    go_numbers = [4844020475, 5737475482, 5408100609, 8472198107, 8159803316]
+    go_dates = ['12/20/2021', '12/20/2021', '12/20/2021', '12/20/2021', '12/20/2021']
+    sales_numbers = salesforce_file['Phone Stripped'].to_list()
+    sales_dates = salesforce_file['Close Date'].to_list()
+    sales_numbers.extend(go_numbers)
+    sales_dates.extend(go_dates)
+
+    sales_df = pd.DataFrame(data=sales_numbers, columns=['Clean Numbers'])
+    left_join_df = sales_df.merge(new_df, on='Clean Numbers', how='left', copy=False)
+    left_join_df = left_join_df[['Clean Numbers', 'Original Publisher']].drop_duplicates()
+    return left_join_df
+
+
+
+# Print Statements
+
+# print(summary_by_media(summary_by_media_calls))
+# print(sum_raw_calls())
+# print(sum_sales())
+
