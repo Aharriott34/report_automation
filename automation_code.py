@@ -163,3 +163,29 @@ def sum_sales_final():
     malbis = 'Malbis'
     print(f'Malbis: {sum_by_media(summary_by_media_calls, malbis)}')
     return ''
+
+# Call Center Sales
+
+def call_center_sales(file,substr):
+    file = file
+    idx_owner = file['Owner Role'].str.contains(substr)
+    sales_count = file[idx_owner]['Close Date'].count()
+    return sales_count
+
+def call_center_final():
+    print('\nCall Center Sales')
+
+    sunrise_substr_1 = 'Sunrise -'
+    sunrise_substr_2 = 'Port St Lucie -'
+    sunrise_substr_3 = 'Cypress -'
+
+    sunrise_total_1 = call_center_sales(salesforce_file, sunrise_substr_1)
+    sunrise_total_2 = call_center_sales(salesforce_file, sunrise_substr_2)
+    sunrise_total_3 = call_center_sales(salesforce_file, sunrise_substr_3)
+    total = sunrise_total_1 +sunrise_total_2 + sunrise_total_3
+    print(f'Sunrise: {total}')
+
+    smartcare_substr = 'SmartCare'
+    smartcare_total = call_center_sales(salesforce_file, smartcare_substr)
+    print(f'SmartCare: {smartcare_total}')
+    return ''
