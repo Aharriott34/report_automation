@@ -189,3 +189,48 @@ def call_center_final():
     smartcare_total = call_center_sales(salesforce_file, smartcare_substr)
     print(f'SmartCare: {smartcare_total}')
     return ''
+
+# Call Center GoHealth Calls Sent, TGH Calls Sent
+
+def calls_sent():
+    clean_df = calls_sent_df.loc[(calls_sent_df['Buyer Campaign'] != 'THI - Sales Call Back') & (calls_sent_df['Buyer Campaign'] != 'Contingency Recording Routing(Consent Call Back)  - WEBSITE')]
+    clean_df = pd.DataFrame(data=clean_df, columns=['Buyer', 'Buyer Campaign', 'Calls'])
+    go_sum = clean_df.loc[clean_df['Buyer'] == 'GO Agents', 'Calls'].sum()
+
+    mha = excel_import.mha_df
+    mha = mha.dropna(subset=['Duration'])
+    new_mha = mha[['Call Date', 'Target Number']].dropna().reset_index()
+    new_mha['Target Number'] = new_mha['Target Number'].astype(np.int64)
+    grouped = new_mha.groupby('Target Number', dropna=True, as_index=False).size()
+    grouped.columns.values[1] = 'Count'
+
+    go_mha = grouped[grouped['Target Number'] == 18556832760]['Count'].values.tolist()
+    tgh_mha = grouped[grouped['Target Number'] == 18134732827]['Count'].values.tolist()
+    tgh_mha_2 = grouped[grouped['Target Number'] == 14844651583]['Count'].values.tolist()
+    tgh_mha_3 = grouped[grouped['Target Number'] == 13083209231]['Count'].values.tolist()
+    tgh_mha_4 = grouped[grouped['Target Number'] == 13086244672]['Count'].values.tolist()
+    tgh_mha_5 = grouped[grouped['Target Number'] == 16106726686]['Count'].values.tolist()
+    tgh_mha_6 = grouped[grouped['Target Number'] == 18775160935]['Count'].values.tolist()
+
+    def mha_if(file):
+        if not file:
+            file.append(0)
+    mha_if(go_mha)
+    mha_if(tgh_mha)
+    mha_if(tgh_mha_2)
+    mha_if(tgh_mha_3)
+    mha_if(tgh_mha_4)
+    mha_if(tgh_mha_5)
+    mha_if(tgh_mha_6)
+
+    tgh_list = [tgh_mha, tgh_mha_2, tgh_mha_3, tgh_mha_4, tgh_mha_5, tgh_mha_6]
+    flatten_tgh = [val for sublist in tgh_list for val in sublist]
+
+    go_input = int(input('GO Subtraction: '))
+    go_final = go_sum - go_input + go_mha[0]
+    tgh_sum = clean_df.loc[clean_df['Buyer'].isin(['TGH Agency', 'MCH']), 'Calls'].sum()
+    tgh_input = int(input('TGH Subtraction: '))
+    tgh_final = tgh_sum - tgh_input + sum(flatten_tgh)
+    print(f'\nGoHealth MHA Count: {go_mha[0]}\nGoHealth Calls Sent: {go_final}')
+    print(f'\nTGH MHA Count: {sum(flatten_tgh)}\nTGH Calls Sent: {tgh_final}')
+    return clean_df
