@@ -1,0 +1,92 @@
+import pandas as pd
+import numpy as np
+import re
+from datetime import datetime
+import excel_import
+from matplotlib import pyplot as plt
+from dateutil.parser import parse
+
+pd.set_option('max_columns', None)
+pd.set_option('max_rows', None)
+pd.set_option('display.float_format', lambda x: '%.5f' % x)
+
+# Fronter time check
+fronter_df = pd.read_excel(r"C:\Users\aharriott\Downloads\2.17.2022.xlsx")
+
+timestamp = fronter_df['TIMESTAMP']
+lst = timestamp.to_list()
+date_lst = []
+time_lst = []
+clean_date = []
+clean_time = []
+for items in lst:
+    time_idx = items[18:32]
+    date_idx = items[5:16]
+    date_lst.append(date_idx)
+    time_lst.append(time_idx)
+
+for date_item in date_lst:
+    dt_1 = parse(date_item)
+    clean_date.append(dt_1.strftime('%d/%m/%Y'))
+
+for time_items in time_lst:
+    dt_2 = parse(time_items)
+
+    clean_time.append(dt_2.strftime('%H:%M:%S'))
+
+fronter_df['Date'] = pd.to_datetime(clean_date)
+fronter_df['Time'] = clean_time
+new_fronter_df = fronter_df[['Date', 'Time','CAMPAIGN', 'CALL TYPE', 'ANI']]
+# print(new_fronter_df)
+
+# Invoca Time Check
+invoca_df = pd.read_csv(r'C:\Users\aharriott\Downloads\production_results_2131501_Report_2022-02-17_to_2022-02-21_call_details_20220225-1-1d31vxr_original.csv')
+
+call_time = invoca_df['Call Start Time']
+# print(call_time.head(5))
+invoca_dates = []
+invoca_time = []
+invoca_clean_date = []
+invoca_clean_time = []
+for timeslots in call_time:
+    i_date_idx = timeslots[0:10]
+    i_time_idx = timeslots[11:]
+    invoca_dates.append(i_date_idx)
+    invoca_time.append(i_time_idx)
+
+for i_date_items in invoca_dates:
+    dt_1 = parse(i_date_items)
+    invoca_clean_date.append(dt_1.strftime('%d/%m/%Y'))
+
+for i_time_items in invoca_time:
+    dt_2 = parse(i_time_items)
+    
+    # invoca_clean_time.append(dt_2.strftime('%H:%M:%S'))
+
+# print(invoca_clean_time)
+invoca_df['Date'] = pd.to_datetime(invoca_clean_date)
+invoca_df['Time'] = invoca_clean_time
+
+clean_ani = []
+for items in invoca_df['Caller ID']:
+    items = str(items)
+    items = items.replace('-', '')
+    items = items.replace('Restricted', '0')
+    items = items.replace('Anonymous', '0')
+    items = items.replace('anonymous', '0')
+    items = items.replace('+', '')
+    items = items.replace(' ', '')
+    items = items.replace('fsazb56c7ce', '0')
+    items = items.replace('nan', '0')
+    items = int(items)
+    clean_ani.append(items)
+
+invoca_df['ANI'] = clean_ani
+# print(clean_ani)
+new_invoca_df = invoca_df[['Date', 'Time', 'Original Publisher', 'ANI']]
+
+left_join_df = pd.merge_asof(new_fronter_df, new_invoca_df.sort_values('Date'), on='Date', by='ANI')
+
+# print(left_join_df.head(5))
+# print(len(left_join_df))
+# print(inner_concat_df)
