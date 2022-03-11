@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import excel_import
+from tabulate import tabulate as tab
 
 # Summary by Media Raw Calls
 summary_by_media_calls = excel_import.summary_df
@@ -246,3 +247,48 @@ def calls_sent():
     print(f'\nGoHealth MHA Count: {go_mha[0]}\nGoHealth Calls Sent: {go_final}')
     print(f'\nTGH MHA Count: {sum(flatten_tgh)}\nTGH Calls Sent: {tgh_final}')
     return clean_df
+
+def five9_fronter_table():
+    timestamp = fronter_df['TIMESTAMP']
+    fronter_date = pd.to_datetime(timestamp)
+    fronter_time = pd.to_timedelta(pd.to_datetime(timestamp).dt.strftime('%H:%M:%S'))
+    fronter_df['Date'] = pd.to_datetime(fronter_date)
+    fronter_df['Time'] = fronter_time
+    new_fronter_df = fronter_df[['Date', 'Time','CAMPAIGN', 'CALL TYPE', 'ANI']]
+    print(f'Fronter ANI Count: {len(new_fronter_df["ANI"])}')
+
+    call_time = invoca_df.iloc[:, 0]
+    invoca_date = pd.to_datetime(call_time)
+    invoca_time = pd.to_timedelta(pd.to_datetime(call_time).dt.strftime('%H:%M:%S'))
+
+    clean_ani = []
+    for items in invoca_df['Caller ID']:
+        items = str(items)
+        items = items.replace('-', '')
+        items = items.replace('Restricted', '0')
+        items = items.replace('Anonymous', '0')
+        items = items.replace('anonymous', '0')
+        items = items.replace('+', '')
+        items = items.replace(' ', '')
+        items = items.replace('fsazb56c7ce', '0')
+        items = items.replace('nan', '0')
+        items = items.replace('asterisk', '0')
+        items = items.replace('Unavailable', '0')
+        items = int(items)
+        clean_ani.append(items)
+
+    invoca_df['Date'] = pd.to_datetime(invoca_date)
+    invoca_df['Time'] = invoca_time
+    invoca_df['ANI'] = clean_ani
+    new_invoca_df = invoca_df[['Date', 'Time', 'Original Publisher', 'ANI']]
+
+    left_join_df = pd.merge_asof(new_fronter_df.sort_values('Date'), new_invoca_df.sort_values('Date'), on='Date', by='ANI',direction='backward')
+    left_join_df['Time Count'] = left_join_df['Time_x'] >= left_join_df['Time_y']
+    left_join_df['Time Count'] = left_join_df['Time Count'] * 1
+
+    df_xtab = pd.crosstab(index=left_join_df['Original Publisher'], columns=pd.to_datetime(left_join_df['Date']).dt.date, values=left_join_df['Time Count'], aggfunc=sum)
+    df_xtab.loc['Total'] = df_xtab.sum()
+    grand_total_days = df_xtab.sum(axis=1)
+    print(df_xtab)
+    print(f'\n{grand_total_days}')
+    return (tab(left_join_df, headers='keys', tablefmt='fancy_grid'))
