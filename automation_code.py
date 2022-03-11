@@ -82,24 +82,32 @@ def sum_raw_calls():
 # Summary by Media Sales
 
 def sum_sales():
-    clean_numbers = []
+clean_numbers = []
     for items in summary_by_media_sales['Caller ID']:
         items = items.replace('-', '')
         items = items.replace('Restricted', '0')
+        items = items.replace('Anonymous', '0')
+        items = items.replace('+', '')
+        items = items.replace(' ', '')
         clean_numbers.append(items)
 
-    summary_by_media_sales['Clean Numbers'] = clean_numbers
-    summary_by_media_sales['Clean Numbers'] = summary_by_media_sales['Clean Numbers'].astype(np.int64)
-    new_df = summary_by_media_sales[['Clean Numbers', 'Call Start Time', 'Original Publisher']]
+    summary_by_media_sales['ANI'] = clean_numbers
+    summary_by_media_sales['ANI'] = summary_by_media_sales['ANI'].astype(np.int64)
+    summary_by_media_sales['ANI'] = summary_by_media_sales['ANI'].replace(0, 100000000)
+    new_df = summary_by_media_sales[['Call Start Time', 'ANI', 'Original Publisher']]
+    new_df['Date'] = new_df['Call Start Time']
+    new_df['Date'] = pd.to_datetime(pd.to_datetime(new_df['Date']).dt.date)
+    new_df.drop('Call Start Time', inplace=True, axis=1)
 
     sales_numbers = salesforce_file['Phone Stripped'].to_list()
     sales_dates = salesforce_file['Close Date'].to_list()
     sales_numbers.extend(excel_import.go_numbers)
     sales_dates.extend(excel_import.go_dates)
 
-    sales_df = pd.DataFrame(data=sales_numbers, columns=['Clean Numbers'])
-    left_join_df = sales_df.merge(new_df, on='Clean Numbers', how='left', copy=False)
-    left_join_df = left_join_df[['Clean Numbers', 'Original Publisher']].dropna()
+    sales_df = pd.DataFrame(data=np.column_stack([sales_dates, sales_numbers]), columns=['Date', 'ANI'])
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['ANI'] = sales_df['ANI'].astype(np.int64)
+    left_join_df = pd.merge_asof(sales_df.sort_values('Date'), new_df.sort_values('Date'), on='Date', by='ANI')
     return left_join_df
 
 def sum_sales_condensed(file, substr):
@@ -175,6 +183,10 @@ def call_center_sales(file,substr):
 def call_center_final():
     print('\nCall Center Sales')
 
+    go_health_total = len(excel_import.go_dates)
+    print(f'GoHealth: {go_health_total}')
+    print('TIB: N/A')
+    
     sunrise_substr_1 = 'Sunrise -'
     sunrise_substr_2 = 'Port St Lucie -'
     sunrise_substr_3 = 'Cypress -'
