@@ -288,7 +288,13 @@ def five9_fronter_table():
 
     df_xtab = pd.crosstab(index=left_join_df['Original Publisher'], columns=pd.to_datetime(left_join_df['Date']).dt.date, values=left_join_df['Time Count'], aggfunc=sum)
     df_xtab.loc['Total'] = df_xtab.sum()
-    grand_total_days = df_xtab.sum(axis=1)
-    print(df_xtab)
-    print(f'\n{grand_total_days}')
-    return (tab(left_join_df, headers='keys', tablefmt='fancy_grid'))
+     df_xtab['Grand Total'] = df_xtab.sum(axis=1)
+
+    writer = pd.ExcelWriter(
+        r'Compter\\Fronter_Invoca_Output.xlsx')
+    left_join_df.to_excel(writer, sheet_name='Left Join Check',
+                          header=['Date', 'Fronter', 'Fronter Time', 'Call Type', 'ANI', 'Invoca Time',
+                                  'Original Publisher', 'Time Counted'], index=False)
+    df_xtab.to_excel(writer, sheet_name='Pivoted Information')
+    writer.save()
+   
