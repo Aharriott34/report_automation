@@ -1,0 +1,60 @@
+import pandas as pd
+def prelog_limit(spend_limit):
+    clean_ani = []
+    for items in prelog_df['Phone-Aired']:
+        items = str(items)
+        items = items.replace('(', '')
+        items = items.replace(')', '')
+        items = items.replace(' ', '')
+        items = items.replace('-', '')
+        items = items.replace('nan', '0')
+        items = int(items)
+        clean_ani.append(items)
+    prelog_df['Source'] = clean_ani
+    prelog_df['Date Aired'] = pd.to_datetime(prelog_df['Date Aired']).dt.date
+    prelog_df['Date'] = prelog_df['Date Aired'].astype(str) + ' ' + prelog_df['Time Aired'].astype(str)
+    prelog_selection = prelog_df[(prelog_df['Spend'] >= spend_limit) & (prelog_df['Spend'] < 100000)]
+    prelog_selection['Date'] = pd.to_datetime(prelog_selection['Date'])
+    prelog_selection['Time'] = pd.to_timedelta(prelog_selection['Date'].dt.strftime('%H:%M:%S'))
+    new_df = prelog_selection[['Date', 'Time', 'Station', 'Estimate', 'Source', 'Spend']]
+    return new_df.sort_values('Date')
+
+def clean_invoca():
+    call_time = invoca_df.iloc[:, 0]
+    invoca_date = pd.to_datetime(call_time)
+    invoca_time = pd.to_timedelta(pd.to_datetime(call_time).dt.strftime('%H:%M:%S'))
+    invoca_df['Date'] = pd.to_datetime(invoca_date)
+    invoca_df['Time'] = invoca_time
+
+    clean_source = []
+    for items in invoca_df['Source']:
+        items = items.replace('-','')
+        items = int(items)
+        clean_source.append(items)
+
+    invoca_df['Source'] = clean_source
+    new_df = invoca_df[['Date', 'Time', 'Source']]
+    return new_df.sort_values('Date')
+
+merged = pd.merge_ordered(left=prelog_limit(3500), right=clean_invoca(), how='left', on='Source')
+# merged.set_index(['Source', 'Time_x'], inplace=True)
+
+df_test = merged[merged['Time_y'] >= merged['Time_x']]
+df_test.set_index(['Source', 'Time_x'], inplace=True)
+df_test.sort_index(inplace=True)
+# y = df_test.groupby(level=[0,1])['Date_y'].apply(lambda x: pd.timedelta_range(x, freq='30T', periods=len(x)))
+y = df_test.groupby(level=[0,1])
+# df_test_1 = df_test.resample('30T', on='Time_y', origin='start')
+
+
+
+
+# df_test = merged[(merged['Time_y'] >= merged['Time_x']) & (merged['Time_y'] > pd.Timedelta(30, unit='min'))]
+# df_test_1 = pd.Grouper(key=df_test['Time_y'], freq='30T')
+# new_merge = df_test[['Source','Time_x', 'Time_y', 'Spend']]
+# new_merge = df_test['Source','Time_x', 'Time_y']
+# group = new_merge.groupby(['Source', 'Time_x'])
+
+# group = df_test(['Source', 'Time_x'])
+
+# grouper = group.resample('30T', on='Time_y').count().drop_duplicates(subset='Time_x')
