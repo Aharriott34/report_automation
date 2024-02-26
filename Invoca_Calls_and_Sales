@@ -1,0 +1,517 @@
+import pandas as pd
+import numpy as np
+import excel_import
+import datetime
+import re
+# Summary by Media Raw Calls
+summary_by_media_calls = excel_import.summary_df
+
+# Summary By Media Sales
+summary_by_media_sales = excel_import.summary_sales_df
+tgh_tv_details = excel_import.tgh_tv_details_df
+mha_sales = excel_import.mha_df
+
+
+# Salesforce Sales
+salesforce_file = excel_import.salesforce_df
+
+# Calls Sent
+calls_sent_df = excel_import.calls_sent_df
+
+# Five9 Fronter & Invoca
+fronter_df = excel_import.fronter_df
+invoca_df = excel_import.invoca_df
+
+pd.set_option('max_columns', None)
+
+# Time Cleaner
+def convert(time):
+    return datetime.datetime.fromtimestamp(time)
+
+# Summary By Media Raw Calls
+def summary_by_media(file):
+    file_xtab = pd.crosstab(index=file['Publisher'], columns=['Calls'], values=file['Calls'], aggfunc=np.sum, dropna=True).reset_index()
+    total_count = np.sum(file_xtab['Calls'])
+    print(f'Total Count of Calls: {total_count}\n')
+    print(file_xtab)
+
+def sum_by_media(file, substr):
+    file_xtab = pd.crosstab(index=file['Publisher'], columns=['Calls'], values=file['Calls'], aggfunc=np.sum, dropna=True).reset_index()
+    idx_of_publisher = file_xtab['Publisher'].str.contains(substr)
+    publisher_count = file_xtab[idx_of_publisher]['Calls'].sum()
+    return publisher_count
+
+def mha_count():
+    try:
+        mha = mha_sales.dropna(subset=['Duration'])
+        new_mha = mha[['Call Date', 'Target Number']].dropna().reset_index()
+        new_mha['Target Number'] = new_mha['Target Number'].astype(np.int64)
+        grouped = new_mha.groupby('Target Number', dropna=True, as_index=False).size()
+        grouped.columns.values[1] = 'Count'
+
+        tgh_mha = grouped[grouped['Target Number'] == 18134732827]['Count'].values.tolist()
+        tgh_mha_2 = grouped[grouped['Target Number'] == 14844651583]['Count'].values.tolist()
+        tgh_mha_3 = grouped[grouped['Target Number'] == 13083209231]['Count'].values.tolist()
+        tgh_mha_4 = grouped[grouped['Target Number'] == 13086244672]['Count'].values.tolist()
+        tgh_mha_5 = grouped[grouped['Target Number'] == 16106726686]['Count'].values.tolist()
+        tgh_mha_6 = grouped[grouped['Target Number'] == 18775160935]['Count'].values.tolist()
+        tgh_mha_7 = grouped[grouped['Target Number'] == 18137738402]['Count'].values.tolist()
+        tgh_mha_8 = grouped[grouped['Target Number'] == 18557888864]['Count'].values.tolist()
+        tgh_mha_9 = grouped[grouped['Target Number'] == 18449742193]['Count'].values.tolist()
+
+        def mha_if(file):
+            if not file:
+                file.append(0)
+        mha_if(tgh_mha)
+        mha_if(tgh_mha_2)
+        mha_if(tgh_mha_3)
+        mha_if(tgh_mha_4)
+        mha_if(tgh_mha_5)
+        mha_if(tgh_mha_6)
+        mha_if(tgh_mha_7)
+        mha_if(tgh_mha_8)
+        mha_if(tgh_mha_9)
+        tgh_list = [tgh_mha, tgh_mha_2, tgh_mha_3, tgh_mha_4, tgh_mha_5, tgh_mha_6, tgh_mha_7, tgh_mha_8, tgh_mha_9]
+        flatten_tgh = [val for sublist in tgh_list for val in sublist]
+        tgh_final = sum(flatten_tgh)
+
+    except AttributeError:
+        tgh_final = 0
+    return tgh_final
+
+def sum_raw_calls():
+    print(f'\nSummary By Media: Raw Calls')
+    print_substr = 'CONVERGE'
+    print(f'Converge Print: {sum_by_media(summary_by_media_calls,print_substr)}')
+
+    print_insert_substr = "Incremental -"
+    print(f'Incremental Inserts: {sum_by_media(summary_by_media_calls,print_insert_substr)}')
+
+    mailer_substr = "Incremental Mailer"
+    mailer_substr_2 = 'Incremental BLEND'
+    mailer_substr_3 = 'Incremental_Mailer'
+    mailer_total_1 = sum_by_media(summary_by_media_calls,mailer_substr)
+    mailer_total_2 = sum_by_media(summary_by_media_calls,mailer_substr_2)
+    mailer_total_3 = sum_by_media(summary_by_media_calls,mailer_substr_3)
+    total_mailer = mailer_total_1 + mailer_total_2 + mailer_total_3
+    print(f'Incremental Mailer: {total_mailer}')
+
+    mailer_bfyt_mch_substr = 'BFYT Doty Mailer MCH'
+    print(f'DOTY Mailer: {sum_by_media(summary_by_media_calls,mailer_bfyt_mch_substr)}')
+
+    doty_incremental = "BFYT Doty Incremental"
+    print(f'DOTY Incremental: {sum_by_media(summary_by_media_calls, doty_incremental)}')
+
+    doty_mspark = "BFYT Doty MSPARK"
+    print(f'DOTY Mspark: {sum_by_media(summary_by_media_calls,doty_mspark)}')
+
+    web_substr = 'MEDICARE COVERAGE HELPLINE'
+    web_substr_2 = '2021 Medicare Helpline'
+    web_count_1 = sum_by_media(summary_by_media_calls,web_substr)
+    web_count_2 = sum_by_media(summary_by_media_calls,web_substr_2)
+    web_total = web_count_1 + web_count_2
+    print(f'Web: {web_total}')
+
+    mch_fb_goog_bing = 'BFYT FB, GOOG, BING'
+    print(f'MCH, FB, GOOG, BING: {sum_by_media(summary_by_media_calls, mch_fb_goog_bing)}')
+
+    bringans = 'Bringans'
+    print(f'Bringans: {sum_by_media(summary_by_media_calls, bringans)}')
+    print('Five9 Third Party Affiliate: N/A')
+
+    rtn = 'RTN'
+    print(f'RTN - Medicare: {sum_by_media(summary_by_media_calls, rtn)}')
+
+    print(f'MHA: {mha_count()}')
+
+    lls = 'LLS'
+    print(f'LLS: {sum_by_media(summary_by_media_calls, lls)}')
+
+    bayfront = 'Bayfront'
+    print(f'Bayfront: {sum_by_media(summary_by_media_calls, bayfront)}')
+
+    malbis = 'Malbis'
+    print(f'Malbis: {sum_by_media(summary_by_media_calls, malbis)}')
+
+    total = sum_by_media(summary_by_media_calls,print_substr) + sum_by_media(summary_by_media_calls,print_insert_substr) + total_mailer + sum_by_media(summary_by_media_calls,mailer_bfyt_mch_substr) + sum_by_media(summary_by_media_calls, doty_incremental) + sum_by_media(summary_by_media_calls,doty_mspark) + web_total + sum_by_media(summary_by_media_calls, mch_fb_goog_bing) + sum_by_media(summary_by_media_calls, bringans) + sum_by_media(summary_by_media_calls, lls) + sum_by_media(summary_by_media_calls, bayfront) + sum_by_media(summary_by_media_calls, malbis) +sum_by_media(summary_by_media_calls, rtn)
+
+    print(f' \nSum w/o MHA: {total}')
+
+# Summary by Media Sales
+
+def sum_sales():
+    clean_numbers = []
+    for items in summary_by_media_sales['Caller ID']:
+        items = str(items)
+        items = items.replace('-', '')
+        items = items.replace('Restricted', '0')
+        items = items.replace('Anonymous', '0')
+        items = items.replace('anonymous', '0')
+        items = items.replace('+', '')
+        items = items.replace(' ', '')
+        items = items.replace('!', '0')
+        items = items.replace('nan', '0')
+        items = items.replace('44(0)7464486560', '0')
+        items = items.replace('Clicktodialdisabled7049088003', '0')
+        items = items.replace('Unknown', '0')
+        items = int(items)
+        clean_numbers.append(items)
+
+    summary_by_media_sales['ANI'] = clean_numbers
+    summary_by_media_sales['ANI'] = summary_by_media_sales['ANI'].astype(np.int64)
+    summary_by_media_sales['ANI'] = summary_by_media_sales['ANI'].replace(0, 100000000)
+    new_df = summary_by_media_sales[['Call Start Time', 'ANI', 'Original Publisher']]
+    new_df['Date'] = new_df['Call Start Time']
+    new_df['Date'] = pd.to_datetime(pd.to_datetime(new_df['Date']).dt.date)
+    new_df.drop('Call Start Time', inplace=True, axis=1)
+
+    sales_numbers = salesforce_file['Phone Stripped'].to_list()
+    sales_dates = salesforce_file['Close Date'].to_list()
+    sales_numbers.extend(excel_import.go_numbers)
+    sales_dates.extend(excel_import.go_dates)
+
+    sales_df = pd.DataFrame(data=np.column_stack([sales_dates, sales_numbers]), columns=['Date', 'ANI'])
+    sales_df['Date'] = sales_df['Date'].apply(lambda x: convert(x) if isinstance(x, int) else x)
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['ANI'] = sales_df['ANI'].astype(np.int64)
+    left_join_df = pd.merge_asof(sales_df.sort_values('Date'), new_df.sort_values('Date'), on='Date', by='ANI')
+    return left_join_df
+
+def tv_calls_report():
+    tv_groupby = tgh_tv_details.groupby('Final Campaign')['Call Record ID'].count().reset_index(name='Count')
+    tv_sum = tv_groupby.sum()
+    tv_key = tgh_tv_details.groupby('Total KeyPresses')['Call Record ID'].count().reset_index(name='Count')
+
+    # Keypress
+    press_one = tv_key.loc[(tv_key['Total KeyPresses'] == ' Â» [1]')].sum()
+    viable_keypress = tv_groupby.loc[
+        (tv_groupby['Final Campaign'] == 'TGH Agency: TGH MCH TV CATCH ALL (IVR)') | (
+                    tv_groupby['Final Campaign'] == 'TGH Agency: TGH Legacy TV CATCH ALL (IVR)') | (tv_groupby[
+                                                                                                              'Final Campaign'] == 'TGH Agency: TGH TV ALL - Sales Agent Direct(No CES) - Real Time Router')].sum()
+    keypress_conversion = (press_one.Count / viable_keypress.Count) * 100
+
+    captive = tv_groupby.loc[
+        (tv_groupby['Final Campaign'] == 'TGH Agency: TGH TV ALL - Sales Agent Direct(No CES) - Real Time Router') | (
+                    tv_groupby['Final Campaign'] == 'TGH Agency: Replicant/TGH - REPLICANT CES TV Calls') | (tv_groupby['Final Campaign'] == 'TGH Agency: TGH TV ALL - Sales Overflow Queue (QiQ No CES)') | (tv_groupby['Final Campaign'] == 'TGH Agency: Legacy TV(TogetherHealth Agency)') | (tv_groupby['Final Campaign'] == 'TGH Agency: ICH TV(TogetherHealth Agency)') | (tv_groupby['Final Campaign'] == 'TGH Agency: MCH TV(TogetherHealth Agency)') | (tv_groupby['Final Campaign'] == 'TGH Agency: HIH TV(TogetherHealth Agency)') | (tv_groupby['Final Campaign'] == 'TGH Agency: TGH TV ALL - Sales Agent Direct(No CES) - Real Time Router)') | (tv_groupby['Final Campaign'] == 'TGH Agency: HI TV(TogetherHealth Agency)') | (tv_groupby['Final Campaign'] == 'TGH Agency: HIH TV(TogetherHealth Agency)  w/ INTRO Recording') | (tv_groupby['Final Campaign'] == 'TGH Agency: ICH TV(TogetherHealth Agency) w/ INTRO Recording') | (tv_groupby['Final Campaign'] == 'TGH Agency: MCH TV(TogetherHealth Agency) w/ INTRO Recording') | (tv_groupby['Final Campaign'] == 'TGH Agency: HI TV(TogetherHealth Agency) w/ INTRO Recording')].sum()
+    catch_all = tv_groupby.loc[
+        (tv_groupby['Final Campaign'] == 'TGH Agency: ICH TV CATCH ALL (non-areas)') | (
+                    tv_groupby['Final Campaign'] == 'TGH Agency: ICH TV CATCH ALL (IVR)') | (
+                    tv_groupby['Final Campaign'] == 'TGH Agency: TGH Joe Namath TV Calls TV CATCH ALL (non-areas)') | (
+                    tv_groupby['Final Campaign'] == 'TGH Agency: HI TV CATCH ALL (IVR)') | (tv_groupby['Final Campaign'] == 'TGH Agency: HIH TV CATCH ALL (IVR)') | (tv_groupby['Final Campaign'] == 'TGH Agency: TGH Devane TV CATCH ALL (non-areas)') | (tv_groupby['Final Campaign'] == 'TGH Agency: TGH Legacy TV CATCH ALL (IVR)') | (tv_groupby['Final Campaign'] == 'TGH Agency: TGH MCH TV CATCH ALL (IVR)')].sum()
+    afterhours = tv_groupby.loc[(tv_groupby['Final Campaign'] == 'Replicant AI: Replicant After Hours TV') | (tv_groupby['Final Campaign'] == 'TGH Agency: Contingency Recording Routing(Consent Call Back)')].sum()
+    zero_second_connect = tv_groupby.loc[
+        (tv_groupby['Final Campaign'] == 'Viber Bundle: Greta Sesheta - Medicare(bundle -tv) - 2022') | (tv_groupby['Final Campaign'] == 'Viber Bundle: Jimmie JJ Walker - Medicare(bundle -tv) - 2022') | (
+tv_groupby['Final Campaign'] == 'Viber Bundle: ICH TV - Medicare(bundle -tv) - 2023') | (tv_groupby['Final Campaign'] == 'Viber Bundle: HI TV - Medicare(bundle -tv) - 2023') | (tv_groupby['Final Campaign'] == 'Viber Bundle: HIH TV - Medicare(bundle -tv) - 2023') | (tv_groupby['Final Campaign'] == 'Viber Bundle: LEGACY - Medicare(bundle -tv) - 2023') | (tv_groupby['Final Campaign'] == 'Viber Bundle: MCH TV - Medicare(bundle -tv) - 2023')].sum()
+
+    print(f'TV Calls Generated {tv_sum.Count}')
+    print(f'TV Calls to Captive: {captive.Count}')
+    print(f'TV Calls to Captive Catch All: {catch_all.Count}')
+    print('TV Calls to Buyers: 0')
+    print(f'TV Calls to Afterhours: {afterhours.Count}')
+    print(f'0 Second Connect: {zero_second_connect.Count}')
+    print(f'Keypress 1: {press_one.Count}')
+    print(f'Total Keypress: {viable_keypress.Count}')
+    print(f"Keypress Percentage: {round(keypress_conversion, 2)}%")
+
+# New TV entry & MHA for Sum by Media
+def sum_sales_mha():
+    mha_sales['ANI'] = mha_sales['Caller ID'].astype(np.int64)
+    new_df = mha_sales[['Call Date', 'ANI', 'Target Number']]
+    new_df['Date'] = new_df['Call Date']
+    new_df['Date'] = pd.to_datetime(pd.to_datetime(new_df['Date']).dt.date)
+    new_df = new_df.drop('Call Date', axis=1)
+    new_df['ANI'] = new_df['ANI'].astype(str)
+    new_df['ANI'] = new_df['ANI'].str[1:]
+    new_df['ANI'] = new_df['ANI'].astype(np.int64)
+
+    sales_numbers = salesforce_file['Phone Stripped'].to_list()
+    sales_dates = salesforce_file['Close Date'].to_list()
+    sales_numbers.extend(excel_import.go_numbers)
+    sales_dates.extend(excel_import.go_dates)
+
+    sales_df = pd.DataFrame(data=np.column_stack([sales_dates, sales_numbers]), columns=['Date', 'ANI'])
+    sales_df['Date'] = sales_df['Date'].apply(lambda x: convert(x) if isinstance(x, int) else x)
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['ANI'] = sales_df['ANI'].astype(np.int64)
+    left_join_df = pd.merge_asof(sales_df.sort_values('Date'), new_df.sort_values('Date'), on='Date', by='ANI')
+    left_join_df = left_join_df.dropna()
+
+    return left_join_df.count(axis=0)
+
+def sum_sales_tv():
+    clean_numbers = []
+    for items in tgh_tv_details['Caller ID']:
+        items = str(items)
+        items = items.replace('-', '')
+        items = items.replace('Restricted', '0')
+        items = items.replace('Anonymous', '0')
+        items = items.replace('anonymous', '0')
+        items = items.replace('Unavailable', '0')
+        items = items.replace(' ', '')
+        items = items.replace('!', '0')
+        items = items.replace('nan', '0')
+        items = items.replace('+44(0)7418353434', '0')
+        items = items.replace('NONE', '0')
+        items = int(items)
+        clean_numbers.append(items)
+
+    tgh_tv_details['ANI'] = clean_numbers
+    tgh_tv_details['ANI'] = tgh_tv_details['ANI'].astype(np.int64)
+    tgh_tv_details['ANI'] = tgh_tv_details['ANI'].replace(0, 100000000)
+    new_df = tgh_tv_details[['Call Start Time', 'ANI', 'Original Publisher']]
+    new_df['Date'] = new_df['Call Start Time']
+    new_df['Date'] = pd.to_datetime(pd.to_datetime(new_df['Date']).dt.date)
+    new_df.drop('Call Start Time', inplace=True, axis=1)
+
+    sales_numbers = salesforce_file['Phone Stripped'].to_list()
+    sales_dates = salesforce_file['Close Date'].to_list()
+    sales_numbers.extend(excel_import.go_numbers)
+    sales_dates.extend(excel_import.go_dates)
+
+    sales_df = pd.DataFrame(data=np.column_stack([sales_dates, sales_numbers]), columns=['Date', 'ANI'])
+    sales_df['Date'] = sales_df['Date'].apply(lambda x: convert(x) if isinstance(x, int) else x)
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['ANI'] = sales_df['ANI'].astype(np.int64)
+    left_join_df = pd.merge_asof(sales_df.sort_values('Date'), new_df.sort_values('Date'), on='Date', by='ANI')
+    tv_condensed = left_join_df[(left_join_df['Original Publisher'] == 'Jimmie Walker 2021') | (left_join_df['Original Publisher'] == 'William Devane 2022 PI') | (left_join_df['Original Publisher'] == 'William Devane 2022') | (left_join_df['Original Publisher'] == 'Joe Namath Main') | (left_join_df['Original Publisher'] == 'Joe Namath PI') | (left_join_df['Original Publisher'] == 'William Shatner 2021') | (left_join_df['Original Publisher'] == 'Greta Sesheta 2021') | (left_join_df['Original Publisher'] == 'Jimmie Walker 2021 PI') | (left_join_df['Original Publisher'] == 'Reingold TV - More')]
+    return tv_condensed.count(axis=0)
+
+
+
+def sum_sales_condensed(file, substr):
+    file = file
+    idx_of_publisher = file['Original Publisher'].str.contains(substr, na=False)
+    sales_count = file[idx_of_publisher]['ANI'].count()
+    return sales_count
+
+def sum_sales_final():
+    print(f'\nSummary By Media: Sales')
+
+    print(f'TV: {sum_sales_tv().ANI}')
+
+    print_substr = 'CONVERGE'
+    print(f'Converge Print: {sum_sales_condensed(sum_sales(), print_substr)}')
+
+    print_insert_substr = "Incremental -"
+    print(f'Incremental Inserts: {sum_sales_condensed(sum_sales(), print_insert_substr)}')
+
+    mailer_substr = "Incremental Mailer"
+    mailer_substr_2 = 'Incremental BLEND'
+    mailer_substr_3 = 'Incremental_Mailer'
+    mailer_total_1 = sum_sales_condensed(sum_sales(), mailer_substr)
+    mailer_total_2 = sum_sales_condensed(sum_sales(), mailer_substr_2)
+    mailer_total_3 = sum_sales_condensed(sum_sales(), mailer_substr_3)
+    total_mailer = mailer_total_1 + mailer_total_2 + mailer_total_3
+    print(f'Incremental Mailer: {total_mailer}')
+
+
+    mailer_bfyt_mch_substr = 'BFYT Doty Mailer MCH'
+    print(f'DOTY Mailer: {sum_sales_condensed(sum_sales(), mailer_bfyt_mch_substr)}')
+
+    doty_incremental = "BFYT Doty Incremental"
+    print(f'DOTY Incremental: {sum_sales_condensed(sum_sales(), doty_incremental)}')
+
+    doty_mspark = "BFYT Doty MSPARK"
+    print(f'DOTY Mspark: {sum_sales_condensed(sum_sales(), doty_mspark)}')
+
+    web_substr = 'MEDICARE COVERAGE HELPLINE'
+    web_substr_2 = '2021 Medicare Helpline'
+    web_substr_3 = 'MCH.COM'
+    web_count_1 = sum_sales_condensed(sum_sales(), web_substr)
+    web_count_2 = sum_sales_condensed(sum_sales(), web_substr_2)
+    web_count_3 = sum_sales_condensed(sum_sales(), web_substr_3)
+    web_total = web_count_1 + web_count_2 + web_count_3
+    print(f'Web: {web_total}')
+
+    mch_fb_goog_bing = 'BFYT FB, GOOG, BING'
+    print(f'MCH, FB, GOOG, BING: {sum_sales_condensed(sum_sales(), mch_fb_goog_bing)}')
+
+    bringans = 'Bringans'
+    print(f'Bringans: {sum_sales_condensed(sum_sales(), bringans)}')
+    print('Five9 Third Party Affiliate: N/A')
+
+    rtn = 'RTN'
+    print(f'RTN - Medicare: {sum_sales_condensed(sum_sales(), rtn)}')
+
+    print(f'MHA: {sum_sales_mha().ANI}')
+
+    lls = 'LLS'
+    print(f'LLS: {sum_sales_condensed(sum_sales(), lls)}')
+
+    bayfront = 'Bayfront'
+    print(f'Bayfront: {sum_sales_condensed(sum_sales(), bayfront)}')
+
+    malbis = 'Malbis'
+    print(f'Malbis: {sum_sales_condensed(sum_sales(), malbis)}')
+    return ''
+
+# Call Center Sales
+
+def call_center_sales(file,substr):
+    file = file
+    idx_owner = file['Owner Role'].str.contains(substr, na=False)
+    sales_count = file[idx_owner]['Close Date'].count()
+    return sales_count
+
+# New Format
+def call_center_final():
+    print('\nCall Center Sales')
+    condensed_sales = salesforce_file[['Close Date','Site']]
+    pivot_info = condensed_sales.groupby(by=['Site']).count()
+    print(pivot_info)
+    return '\n'
+
+
+# Call Center GoHealth Calls Sent, TGH Calls Sent
+def invoca_cleaner(invoca_csv):
+    clean_source = []
+    source = invoca_csv['Source']
+    for items in source:
+        items = str(items)
+        items = items.replace('-', '')
+        items = int(items)
+        clean_source.append(items)
+    source_df = pd.DataFrame(data=clean_source, columns=['Source'])
+    grouped = source_df.groupby('Source', dropna=True, as_index=False).size()
+    grouped.columns.values[1] = 'Count'
+    return grouped
+
+
+
+# Five9 & Invoca Fronter Call Confirmation
+
+def five9_fronter_table():
+    timestamp = fronter_df['TIMESTAMP']
+    fronter_date = pd.to_datetime(timestamp)
+    fronter_time = pd.to_timedelta(pd.to_datetime(timestamp).dt.strftime('%H:%M:%S'))
+    fronter_df['Date'] = pd.to_datetime(fronter_date)
+    fronter_df['Time'] = fronter_time
+    new_fronter_df = fronter_df[['Date', 'Time','CAMPAIGN', 'CALL TYPE', 'ANI']]
+    print(f'Fronter ANI Count: {len(new_fronter_df["ANI"])}')
+
+    call_time = invoca_df.iloc[:, 0]
+    invoca_date = pd.to_datetime(call_time)
+    invoca_time = pd.to_timedelta(pd.to_datetime(call_time).dt.strftime('%H:%M:%S'))
+
+    clean_ani = []
+    for items in invoca_df['Caller ID']:
+        items = str(items)
+        items = items.replace('-', '')
+        items = items.replace('Restricted', '0')
+        items = items.replace('Anonymous', '0')
+        items = items.replace('anonymous', '0')
+        items = items.replace('Unknown', '0')
+        items = items.replace('NONE', '0')
+        items = items.replace('+', '')
+        items = items.replace(' ', '')
+        items = items.replace('fsazb56c7ce', '0')
+        items = items.replace('nan', '0')
+        items = items.replace('asterisk', '0')
+        items = items.replace('Unavailable', '0')
+        items = items.replace('4.05552E11', '0')
+        items = items.replace('1.41061E11', '0')
+        items = items.replace('44(0)7842175735', '0')
+        items = items.replace('49(0)23', '0')
+        items = items.replace('44(0)2039477000', '0')
+        items = items.replace('44(0)7785717828', '0')
+        items = items.replace('ncsvoice', '0')
+        items = items.replace('gsresidents', '0')
+        items = items.replace('44(0)1414847774', '0')
+        items = items.replace('!', '0')
+        items = int(items)
+        clean_ani.append(items)
+
+    invoca_df['Date'] = pd.to_datetime(invoca_date)
+    invoca_df['Time'] = invoca_time
+    invoca_df['ANI'] = clean_ani
+    new_invoca_df = invoca_df[['Date', 'Time', 'Original Publisher', 'ANI']]
+
+    left_join_df = pd.merge_asof(new_fronter_df.sort_values('Date'), new_invoca_df.sort_values('Date'), on='Date', by='ANI',direction='backward')
+    left_join_df['Time Count'] = left_join_df['Time_x'] >= left_join_df['Time_y']
+    left_join_df['Time Count'] = left_join_df['Time Count'] * 1
+
+    df_xtab = pd.crosstab(index=left_join_df['Original Publisher'], columns=pd.to_datetime(left_join_df['Date']).dt.date, values=left_join_df['Time Count'], aggfunc=sum)
+    df_xtab.loc['Total'] = df_xtab.sum()
+    df_xtab['Grand Total'] = df_xtab.sum(axis=1)
+
+
+    writer = pd.ExcelWriter(
+        r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Fronter_Invoca_Output.xlsx')
+    left_join_df.to_excel(writer, sheet_name='Left Join Check',
+                          header=['Date', 'Fronter', 'Fronter Time', 'Call Type', 'ANI', 'Invoca Time',
+                                  'Original Publisher', 'Time Counted'], index=False)
+    df_xtab.to_excel(writer, sheet_name='Pivoted Information')
+    writer.save()
+
+
+# Reports to call
+pd.set_option('max_rows', None)
+pd.options.mode.chained_assignment = None
+
+# Daily TV Report
+tv_calls = automation_code.tv_calls_report()
+
+# Summary by Media Calls
+# summary_calls = automation_code.summary_by_media(automation_code.summary_by_media_calls)
+# pivoted_calls = automation_code.sum_raw_calls()
+
+# Summary by Media Sales
+# summary_sales = automation_code.sum_sales()
+pivot_sales = automation_code.sum_sales_final()
+# print(summary_sales)
+
+# Call Center Sales
+# call_centers = automation_code.call_center_final()
+
+# Calls Sent
+# call_sent = automation_code.calls_sent()
+# print(call_sent)
+
+# Five9 Fronter Calls
+# automation_code.five9_fronter_table()
+
+
+#EXCEL IMPORTS
+
+summary_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='raw_calls')
+# Summary by Media Sales CSV (call_details)
+summary_sales_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='sales')
+# Salesforce CSV
+salesforce_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='salesforce_sales')
+# Use Salesforce CSV if there is no file available to download
+# salesforce_df = pd.DataFrame(data=[], columns=['Phone Stripped', 'Close Date'])
+
+# GoHealth Agents
+go_health_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='go_sales')
+go_health_df['go_nums'] = go_health_df.contact_phone_digits.fillna(0).astype(np.int64)
+
+# Use this if there are no Go Sales
+
+# go_numbers = []
+# go_dates = []
+
+go_numbers = go_health_df.go_nums.to_list()
+go_dates = go_health_df.submission_date.to_list()
+
+# Calls Sent
+calls_sent_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='tgh_and_go_media_summary')
+
+# MHA
+mha_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='mha_raw_file')
+# mha_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='invoca_mha')
+# GO & TGH Call Tracker
+go_tv_df = pd.read_csv(r'C:\Users\aharriott\Downloads\2022-02-09_summary_by_multi_level.csv')
+tgh_tv_df = pd.read_csv(r'C:\Users\aharriott\Downloads\2022-02-11_summary_by_multi_level.csv')
+
+
+# Five9 Fronter & Invoca File
+# fronter_df = pd.read_excel(r'C:\Users\aharriott\Downloads\Five9_6.22.2022.xlsx')
+fronter_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Python Excel Files\fronter_and_dni.xlsx', sheet_name='Fronter')
+# invoca_df = pd.read_csv(r'C:\Users\aharriott\Downloads\production_results_2454648_Report_2022-06-21_to_2022-06-22_call_details_20220623-1-1kvj1cy_original.csv')
+invoca_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Python Excel Files\fronter_and_dni.xlsx', sheet_name='Raw Invoca File')
+
+# TGH TV Details
+tgh_tv_details_df = pd.read_excel(r'\\BFYT-DC01\Redirected_Folders\aharriott\Documents\Excel Files\State Monthly Report\2022 Report\Media Summary Python.xlsx', sheet_name='tgh_tv_details')
+
+
+
